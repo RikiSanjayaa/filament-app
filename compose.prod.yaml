@@ -5,8 +5,7 @@ services:
       - ./:/var/www
       - ./docker/development/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     ports:
-      - "80:80"
-      - "443:443"  # HTTPS
+      - "8001:80"
     environment:
       - NGINX_HOST=example.com  # Change to your domain
     networks:
@@ -16,7 +15,7 @@ services:
         condition: service_started
     restart: always
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      test: ["CMD", "curl", "-f", "http://localhost/login"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -40,15 +39,13 @@ services:
         condition: service_started
     restart: always
     healthcheck:
-      test: ["CMD", "php-fpm-healthcheck"]
+      test: ["CMD-SHELL", "pidof php-fpm || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
 
   postgres:
     image: postgres:16
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
     environment:
       - POSTGRES_DB=${DB_DATABASE}
       - POSTGRES_USER=${DB_USERNAME}
@@ -59,15 +56,13 @@ services:
       - laravel-production
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME}"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}"]
+      interval: 30s
       timeout: 5s
-      retries: 5
+      retries: 3
 
   redis:
     image: redis:alpine
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
     networks:
       - laravel-production
     restart: always
